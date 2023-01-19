@@ -48,7 +48,7 @@ public class ProjectAction {
                 default:
                     logger.error("Failed to find project '" + projectName +"' '" + projectVersion
                             + "' due to error from server: " + response.getStatusText());
-                    throw new DependencyTrackException(format("Failed to fetch project not found: %s-%s", projectName, projectVersion));
+                    throw new DependencyTrackException(format("Failed to fetch project from server: %s-%s", projectName, projectVersion));
             }
         } catch (UnirestException ex) {
             throw new DependencyTrackException(ex.getMessage(), ex);
