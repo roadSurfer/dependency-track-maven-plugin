@@ -11,8 +11,7 @@ import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 
-import static io.github.pmckeown.dependencytrack.ResourceConstants.V1_PROJECT;
-import static io.github.pmckeown.dependencytrack.ResourceConstants.V1_PROJECT_UUID;
+import static io.github.pmckeown.dependencytrack.ResourceConstants.*;
 import static kong.unirest.Unirest.delete;
 import static kong.unirest.Unirest.get;
 import static kong.unirest.Unirest.patch;
@@ -40,6 +39,23 @@ public class ProjectClient {
                 .asObject(new GenericType<List<Project>>(){});
 
         Optional<List<Project>> body;
+        if (httpResponse.isSuccess()) {
+            body = Optional.of(httpResponse.getBody());
+        } else {
+            body = Optional.empty();
+        }
+
+        return new Response<>(httpResponse.getStatus(), httpResponse.getStatusText(), httpResponse.isSuccess(), body);
+    }
+
+    public Response<Project> getProject(String name, String version) {
+        HttpResponse<Project> httpResponse = get(commonConfig.getDependencyTrackBaseUrl() + V1_PROJECT_LOOKUP)
+                .header(X_API_KEY, commonConfig.getApiKey())
+                .queryString("name", name)
+                .queryString("version", version)
+                .asObject(new GenericType<Project>(){});
+
+        Optional<Project> body;
         if (httpResponse.isSuccess()) {
             body = Optional.of(httpResponse.getBody());
         } else {

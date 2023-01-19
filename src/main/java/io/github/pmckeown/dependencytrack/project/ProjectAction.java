@@ -4,12 +4,12 @@ import io.github.pmckeown.dependencytrack.DependencyTrackException;
 import io.github.pmckeown.dependencytrack.Response;
 import io.github.pmckeown.dependencytrack.bom.BomParser;
 import io.github.pmckeown.util.Logger;
+import kong.unirest.HttpStatus;
 import kong.unirest.UnirestException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.File;
-import java.util.List;
 import java.util.Optional;
 
 import static java.lang.String.format;
@@ -31,31 +31,30 @@ public class ProjectAction {
 
     public Project getProject(String projectName, String projectVersion) throws DependencyTrackException {
         try {
-            Response<List<Project>> response = projectClient.getProjects();
+            Response<Project> response = projectClient.getProject(projectName, projectVersion);
 
-            if (response.isSuccess()) {
-                Optional<List<Project>> body = response.getBody();
-                if (body.isPresent()) {
-                    Optional<Project> project = findProject(body.get(), projectName, projectVersion);
-
+            switch (response.getStatus()) {
+                case HttpStatus.OK: {
+                    Optional<Project> project = response.getBody();
                     if (project.isPresent()) {
                         return project.get();
                     } else {
                         throw new DependencyTrackException(
                                 format("Requested project not found: %s-%s", projectName, projectVersion));
                     }
-                } else {
-                    throw new DependencyTrackException("No projects found on server.");
                 }
-            } else {
-                logger.error("Failed to list projects with error from server: " + response.getStatusText());
-                throw new DependencyTrackException("Failed to list projects");
+                case HttpStatus.NOT_FOUND:
+                    throw new DependencyTrackException(format("Requested project not found: %s-%s", projectName, projectVersion));
+                default:
+                    logger.error("Failed to find project '" + projectName +"' '" + projectVersion
+                            + "' due to error from server: " + response.getStatusText());
+                    throw new DependencyTrackException(format("Failed to fetch project not found: %s-%s", projectName, projectVersion));
             }
         } catch (UnirestException ex) {
             throw new DependencyTrackException(ex.getMessage(), ex);
         }
     }
-    
+
     public boolean updateProjectInfo(Project project, String bomLocation) throws DependencyTrackException {
         Optional<ProjectInfo> info = bomParser.getProjectInfo(new File(bomLocation));
         if (info.isPresent()) {
@@ -83,11 +82,5 @@ public class ProjectAction {
             logger.error("Failed to delete project", ex);
             throw new DependencyTrackException("Failed to delete project");
         }
-    }
-
-    private Optional<Project> findProject(List<Project> projects, String projectName, String projectVersion) {
-        return projects.stream()
-                .filter(project -> projectName.equals(project.getName()) && projectVersion.equals(project.getVersion()))
-                .findFirst();
     }
 }

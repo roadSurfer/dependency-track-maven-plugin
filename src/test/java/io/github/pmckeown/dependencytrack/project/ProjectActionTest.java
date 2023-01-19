@@ -53,7 +53,8 @@ public class ProjectActionTest {
 
     @Test
     public void thatProjectCanBeRetrievedByNameAndVersion() throws Exception {
-        doReturn(aSuccessResponse().withBody(aProjectList()).build()).when(projectClient).getProjects();
+        doReturn(aSuccessResponse().withBody(project2()).build()).when(projectClient).getProject(PROJECT_NAME_2,
+                PROJECT_VERSION_2);
 
         Project project = projectAction.getProject(PROJECT_NAME_2, PROJECT_VERSION_2);
 
@@ -63,7 +64,7 @@ public class ProjectActionTest {
 
     @Test
     public void thatExceptionIsThrownWhenConnectionFails() {
-        doThrow(UnirestException.class).when(projectClient).getProjects();
+        doThrow(UnirestException.class).when(projectClient).getProject(PROJECT_NAME_2, PROJECT_VERSION_2);
 
         try {
             projectAction.getProject(PROJECT_NAME_2, PROJECT_VERSION_2);
@@ -74,7 +75,7 @@ public class ProjectActionTest {
 
     @Test
     public void thatANotFoundResponseResultsInAnException() {
-        doReturn(aNotFoundResponse()).when(projectClient).getProjects();
+        doReturn(aNotFoundResponse()).when(projectClient).getProject(PROJECT_NAME_2, PROJECT_VERSION_2);
 
         try {
             projectAction.getProject(PROJECT_NAME_2, PROJECT_VERSION_2);
@@ -85,7 +86,7 @@ public class ProjectActionTest {
 
     @Test
     public void thatNoProjectsAreFoundAnExceptionIsThrown() {
-        doReturn(aSuccessResponse().build()).when(projectClient).getProjects();
+        doReturn(aSuccessResponse().build()).when(projectClient).getProject(PROJECT_NAME_2, PROJECT_VERSION_2);
 
         try {
             projectAction.getProject(PROJECT_NAME_2, PROJECT_VERSION_2);
@@ -96,10 +97,13 @@ public class ProjectActionTest {
 
     @Test
     public void thatRequestedProjectCannotBeFoundAnExceptionIsThrown() {
-        doReturn(aSuccessResponse().withBody(aProjectList()).build()).when(projectClient).getProjects();
+        final String projectName = "missing-project";
+        final String projectVersion = "unknown-version";
+
+        doReturn(aSuccessResponse().withBody(project1()).build()).when(projectClient).getProject(projectName, projectVersion);
 
         try {
-            projectAction.getProject("missing-project", "unknown-version");
+            projectAction.getProject(projectName, projectVersion);
         } catch (Exception ex) {
             assertThat(ex, is(instanceOf(DependencyTrackException.class)));
         }
@@ -135,14 +139,21 @@ public class ProjectActionTest {
             assertThat(ex, is(instanceOf(DependencyTrackException.class)));
         }
     }
-    
+
     private Response aNotFoundResponse() {
         return new Response(404, "Not Found", false);
     }
 
+    private Project project1() {
+        return new Project(UUID_2, PROJECT_NAME_2, PROJECT_VERSION_2, null);
+    }
+
+    private Project project2() {
+        return new Project(UUID_2, PROJECT_NAME_2, PROJECT_VERSION_2, null);
+    }
+
     private List<Project> aProjectList() {
-        return Arrays.asList(new Project(UUID_1, PROJECT_NAME_1, PROJECT_VERSION_1, null),
-                    new Project(UUID_2, PROJECT_NAME_2, PROJECT_VERSION_2, null));
+        return Arrays.asList(project1(), project2());
     }
 
 }

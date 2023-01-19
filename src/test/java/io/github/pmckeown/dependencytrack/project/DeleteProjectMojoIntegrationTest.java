@@ -2,6 +2,7 @@ package io.github.pmckeown.dependencytrack.project;
 
 import com.github.tomakehurst.wiremock.http.Fault;
 import io.github.pmckeown.dependencytrack.AbstractDependencyTrackMojoTest;
+import kong.unirest.HttpStatus;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.junit.Before;
@@ -13,11 +14,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.deleteRequestedFor
 import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static io.github.pmckeown.TestMojoLoader.loadDeleteProjectMojo;
-import static io.github.pmckeown.dependencytrack.ResourceConstants.V1_PROJECT;
+import static io.github.pmckeown.dependencytrack.ResourceConstants.V1_PROJECT_LOOKUP;
 import static io.github.pmckeown.dependencytrack.TestResourceConstants.V1_PROJECT_UUID;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -39,8 +39,8 @@ public class DeleteProjectMojoIntegrationTest extends AbstractDependencyTrackMoj
 
     @Test
     public void thatAProjectCanBeDeleted() throws Exception {
-        stubFor(get(urlEqualTo(V1_PROJECT)).willReturn(
-                aResponse().withBodyFile("api/v1/project/get-all-projects.json")));
+        stubFor(get(urlPathMatching(V1_PROJECT_LOOKUP)).willReturn(
+                aResponse().withBodyFile("api/v1/project/get-DT-360snap-project.json")));
         stubFor(delete(urlPathMatching(V1_PROJECT_UUID)).willReturn(
                 aResponse().withStatus(200)));
 
@@ -51,8 +51,8 @@ public class DeleteProjectMojoIntegrationTest extends AbstractDependencyTrackMoj
 
     @Test
     public void thatWhenProjectDeletionFailedAndFailOnErrorFalseThenMojoSucceeds() {
-        stubFor(get(urlEqualTo(V1_PROJECT)).willReturn(
-                aResponse().withBodyFile("api/v1/project/get-all-projects.json")));
+        stubFor(get(urlPathMatching(V1_PROJECT_LOOKUP)).willReturn(
+                aResponse().withBodyFile("api/v1/project/get-DT-360snap-project.json")));
         stubFor(delete(urlPathMatching(V1_PROJECT_UUID)).willReturn(
                 aResponse().withStatus(500)));
 
@@ -67,8 +67,8 @@ public class DeleteProjectMojoIntegrationTest extends AbstractDependencyTrackMoj
 
     @Test
     public void thatWhenProjectDeletionFailedAndFailOnErrorTrueThenMojoFailureExceptionIsThrown() {
-        stubFor(get(urlEqualTo(V1_PROJECT)).willReturn(
-                aResponse().withBodyFile("api/v1/project/get-all-projects.json")));
+        stubFor(get(urlPathMatching(V1_PROJECT_LOOKUP)).willReturn(
+                aResponse().withBodyFile("api/v1/project/get-DT-360snap-project.json")));
         stubFor(delete(urlPathMatching(V1_PROJECT_UUID)).willReturn(
                 aResponse().withStatus(500)));
 
@@ -83,8 +83,8 @@ public class DeleteProjectMojoIntegrationTest extends AbstractDependencyTrackMoj
 
     @Test
     public void thatWhenProjectIsNotFoundDeletionIsNotAttempted() throws Exception {
-        stubFor(get(urlEqualTo(V1_PROJECT)).willReturn(
-                aResponse().withBodyFile("api/v1/project/get-all-projects.json")));
+        stubFor(get(urlPathMatching(V1_PROJECT_LOOKUP)).willReturn(
+                aResponse().withStatus(HttpStatus.NOT_FOUND)));
         deleteProjectMojo.setProjectName("unknown");
         deleteProjectMojo.setProjectVersion("1.2.3-SNAPSHOT");
 
@@ -99,8 +99,8 @@ public class DeleteProjectMojoIntegrationTest extends AbstractDependencyTrackMoj
 
     @Test
     public void thatWhenProjectDeleteErrorsAndFailOnErrorTrueThenMojoExecutionExceptionIsThrown() {
-        stubFor(get(urlEqualTo(V1_PROJECT)).willReturn(
-                aResponse().withBodyFile("api/v1/project/get-all-projects.json")));
+        stubFor(get(urlPathMatching(V1_PROJECT_LOOKUP)).willReturn(
+                aResponse().withBodyFile("api/v1/project/get-DT-360snap-project.json")));
         stubFor(delete(urlPathMatching(V1_PROJECT_UUID)).willReturn(
                 aResponse().withFault(Fault.RANDOM_DATA_THEN_CLOSE)));
 
@@ -115,8 +115,8 @@ public class DeleteProjectMojoIntegrationTest extends AbstractDependencyTrackMoj
 
     @Test
     public void thatWhenProjectDeleteErrorsAndFailOnErrorFalseThenMojoSucceeds() {
-        stubFor(get(urlEqualTo(V1_PROJECT)).willReturn(
-                aResponse().withBodyFile("api/v1/project/get-all-projects.json")));
+        stubFor(get(urlPathMatching(V1_PROJECT_LOOKUP)).willReturn(
+                aResponse().withBodyFile("api/v1/project/get-DT-360snap-project.json")));
         stubFor(delete(urlPathMatching(V1_PROJECT_UUID)).willReturn(
                 aResponse().withFault(Fault.RANDOM_DATA_THEN_CLOSE)));
 
@@ -131,8 +131,8 @@ public class DeleteProjectMojoIntegrationTest extends AbstractDependencyTrackMoj
 
     @Test
     public void thatDeleteIsSkippedWhenSkipIsTrue() throws Exception {
-        stubFor(get(urlEqualTo(V1_PROJECT)).willReturn(
-                aResponse().withBodyFile("api/v1/project/get-all-projects.json")));
+        stubFor(get(urlPathMatching(V1_PROJECT_LOOKUP)).willReturn(
+                aResponse().withBodyFile("api/v1/project/get-DT-360snap-project.json")));
         stubFor(delete(urlPathMatching(V1_PROJECT_UUID)).willReturn(
                 aResponse().withStatus(200)));
 

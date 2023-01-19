@@ -3,7 +3,6 @@ package io.github.pmckeown.dependencytrack.metrics;
 import com.github.tomakehurst.wiremock.http.Fault;
 import io.github.pmckeown.dependencytrack.AbstractDependencyTrackMojoTest;
 import io.github.pmckeown.dependencytrack.PollingConfig;
-import io.github.pmckeown.dependencytrack.ResourceConstants;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.junit.Before;
@@ -14,16 +13,14 @@ import static com.github.tomakehurst.wiremock.client.WireMock.exactly;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.stubFor;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.verify;
 import static io.github.pmckeown.TestMojoLoader.loadMetricsMojo;
-import static io.github.pmckeown.dependencytrack.ResourceConstants.V1_PROJECT;
+import static io.github.pmckeown.dependencytrack.ResourceConstants.V1_PROJECT_LOOKUP;
 import static io.github.pmckeown.dependencytrack.TestResourceConstants.V1_METRICS_PROJECT_CURRENT;
 import static io.github.pmckeown.dependencytrack.TestUtils.asJson;
 import static io.github.pmckeown.dependencytrack.metrics.MetricsBuilder.aMetrics;
 import static io.github.pmckeown.dependencytrack.project.ProjectBuilder.aProject;
-import static io.github.pmckeown.dependencytrack.project.ProjectListBuilder.aListOfProjects;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -42,21 +39,21 @@ public class MetricsMojoIntegrationTest extends AbstractDependencyTrackMojoTest 
 
     @Test
     public void thatMetricsCanBeRetrievedForCurrentProject() throws Exception {
-        stubFor(get(urlEqualTo(V1_PROJECT)).willReturn(
-                aResponse().withBodyFile("api/v1/project/get-all-projects.json")));
+        stubFor(get(urlPathMatching(V1_PROJECT_LOOKUP)).willReturn(
+                aResponse().withBodyFile("api/v1/project/get-test-name-project.json")));
 
         metricsMojo.setProjectName("testName");
         metricsMojo.setProjectVersion("99.99");
 
         metricsMojo.execute();
 
-        verify(exactly(1), getRequestedFor(urlEqualTo(ResourceConstants.V1_PROJECT)));
+        verify(exactly(1), getRequestedFor(urlPathMatching(V1_PROJECT_LOOKUP)));
     }
 
     @Test
     public void thatWhenMetricsAreNotInProjectTheyAreRetrievedExplicitly() throws Exception {
-        stubFor(get(urlEqualTo(V1_PROJECT)).willReturn(
-                aResponse().withBodyFile("api/v1/project/get-all-projects.json")));
+        stubFor(get(urlPathMatching(V1_PROJECT_LOOKUP)).willReturn(
+                aResponse().withBodyFile("api/v1/project/get-no-metric-project.json")));
         stubFor(get(urlPathMatching(V1_METRICS_PROJECT_CURRENT)).willReturn(
                 aResponse().withBodyFile("api/v1/metrics/project/project-metrics.json")));
 
@@ -66,14 +63,14 @@ public class MetricsMojoIntegrationTest extends AbstractDependencyTrackMojoTest 
 
         metricsMojo.execute();
 
-        verify(exactly(1), getRequestedFor(urlEqualTo(V1_PROJECT)));
+        verify(exactly(1), getRequestedFor(urlPathMatching(V1_PROJECT_LOOKUP)));
         verify(exactly(1), getRequestedFor(urlPathMatching(V1_METRICS_PROJECT_CURRENT)));
     }
 
     @Test
     public void thatExceptionIsThrownWhenMetricsCannotBeRetrievedForCurrentProject() throws Exception {
-        stubFor(get(urlEqualTo(V1_PROJECT)).willReturn(
-                aResponse().withBodyFile("api/v1/project/get-all-projects.json")));
+        stubFor(get(urlPathMatching(V1_PROJECT_LOOKUP)).willReturn(
+                aResponse().withBodyFile("api/v1/project/get-DT-360snap-project.json")));
         stubFor(get(urlPathMatching(V1_METRICS_PROJECT_CURRENT)).willReturn(
                 aResponse().withFault(Fault.MALFORMED_RESPONSE_CHUNK)));
 
@@ -90,20 +87,19 @@ public class MetricsMojoIntegrationTest extends AbstractDependencyTrackMojoTest 
 
     @Test
     public void thatAnyCriticalIssuesPresentCanFailTheBuild() throws Exception {
-        stubFor(get(urlEqualTo(V1_PROJECT)).willReturn(
+        stubFor(get(urlPathMatching(V1_PROJECT_LOOKUP)).willReturn(
                 aResponse().withBody(asJson(
-                        aListOfProjects()
-                                .withProject(aProject()
-                                        .withUuid("1234")
-                                        .withName("test-project")
-                                        .withVersion("1.2.3")
-                                        .withMetrics(
-                                                aMetrics()
-                                                        .withCritical(101)
-                                                        .withHigh(201)
-                                                        .withMedium(301)
-                                                        .withLow(401)
-                                                        .withUnassigned(501)))
+                        aProject()
+                            .withUuid("1234")
+                            .withName("test-project")
+                            .withVersion("1.2.3")
+                            .withMetrics(
+                                    aMetrics()
+                                            .withCritical(101)
+                                            .withHigh(201)
+                                            .withMedium(301)
+                                            .withLow(401)
+                                            .withUnassigned(501))
                         .build()))));
 
         metricsMojo.setProjectName("test-project");
@@ -120,14 +116,14 @@ public class MetricsMojoIntegrationTest extends AbstractDependencyTrackMojoTest 
 
     @Test
     public void thatTheMetricsIsSkippedWhenSkipIsTrue() throws Exception {
-        stubFor(get(urlEqualTo(V1_PROJECT)).willReturn(
-                aResponse().withBodyFile("api/v1/project/get-all-projects.json")));
+        stubFor(get(urlPathMatching(V1_PROJECT_LOOKUP)).willReturn(
+                aResponse().withBodyFile("api/v1/project/get-DT-360snap-project.json")));
         metricsMojo.setSkip(true);
         metricsMojo.setProjectName("testName");
         metricsMojo.setProjectVersion("99.99");
 
         metricsMojo.execute();
 
-        verify(exactly(0), getRequestedFor(urlEqualTo(V1_PROJECT)));
+        verify(exactly(0), getRequestedFor(urlPathMatching(V1_PROJECT_LOOKUP)));
     }
 }
